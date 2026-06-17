@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💰 Mis Finanzas — Antonio</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<div id="app-loading" style="position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:14px;">
+  <div style="font-size:2.5rem;">💰</div>
+  <div style="color:var(--muted);font-size:.95rem;">Cargando tus finanzas...</div>
+  <div id="loading-error" style="color:var(--yellow);font-size:.82rem;display:none;">Sin conexión — cargando datos locales</div>
+</div>
+
+<!-- ===== AUTH — LOGIN / REGISTER ===== -->
+<div id="page-auth" class="page active">
+  <div class="auth-container">
+    <div class="auth-box">
+      <div class="auth-logo">💰</div>
+      <h2 class="auth-title">Mis Finanzas</h2>
+      <p class="auth-subtitle" id="auth-subtitle">Inicia sesión para continuar</p>
+
+      <div id="auth-error" class="auth-error" style="display:none;"></div>
+
+      <div class="auth-form">
+        <input type="email" id="auth-email" placeholder="Correo electrónico" autocomplete="email" />
+        <input type="password" id="auth-password" placeholder="Contraseña" autocomplete="current-password" />
+        <button class="btn auth-btn" id="auth-submit-btn" onclick="authSubmit()">Iniciar sesión</button>
+      </div>
+
+      <div class="auth-toggle">
+        <span id="auth-toggle-text">¿No tenés cuenta? <a href="#" onclick="toggleAuthMode()" id="auth-toggle-link">Registrate</a></span>
+        <a href="#" id="auth-toggle-mode" onclick="toggleAuthMode()" style="display:none;"></a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="app-content" style="display:none;">
+
+<nav id="app-nav">
+  <div class="logo">💰 Mis Finanzas</div>
+  <button class="active" onclick="goTo('dashboard')">Dashboard</button>
+  <button onclick="goTo('presupuesto')">Presupuesto</button>
+  <button onclick="goTo('gastos')">Gastos</button>
+  <button onclick="goTo('ingresos-log')">Ingresos</button>
+  <button onclick="goTo('deudas')">Deudas</button>
+  <span style="flex:1;"></span>
+  <span id="nav-user-email" style="font-size:.78rem;color:var(--muted);padding:0 8px;"></span>
+  <button onclick="authLogout()" style="color:var(--muted);font-size:.82rem;" title="Cerrar sesión">🚪 Salir</button>
+</nav>
+
+<main>
+
+  <!-- ===== DASHBOARD ===== -->
+  <div id="page-dashboard" class="page active">
+    <h2>Resumen del mes</h2>
+    <div id="alert-balance"></div>
+
+    <div class="cards" id="dash-cards"></div>
+
+    <div class="chart-row">
+      <div class="chart-box">
+        <h3>Distribución de gastos</h3>
+        <canvas id="chartGastos"></canvas>
+      </div>
+      <div class="chart-box">
+        <h3>Ingresos vs Gastos</h3>
+        <canvas id="chartBalance"></canvas>
+      </div>
+    </div>
+
+    <div id="dash-progress"></div>
+
+    <div id="dash-limits" class="card" style="margin-bottom:16px;">
+      <h3 style="margin-bottom:14px;">🎯 Límites por categoría</h3>
+      <div id="dash-limits-content"></div>
+    </div>
+
+    <div class="tip-box">
+      <h4>💡 ¿Cómo funciona esta app?</h4>
+      <p>
+        <strong>Presupuesto</strong> → edita tus ingresos y gastos fijos mensuales.<br>
+        <strong>Gastos</strong> → registra compras y pagos del día a día (como la cerveza, la cena, etc.).<br>
+        <strong>Deudas</strong> → lleva el control de lo que debes y ve bajando el importe.<br>
+        Todo se guarda automáticamente en tu navegador. No necesitas internet.
+      </p>
+    </div>
+
+    <div class="tip-box" style="border-color:var(--border);background:var(--card);margin-top:20px;">
+      <h4 style="color:var(--muted);">📦 Copia de seguridad</h4>
+      <p style="margin-bottom:14px;">Exporta tus datos como archivo JSON o recupera una copia previa.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn btn-sm" onclick="exportarDatos()">⬇ Exportar JSON</button>
+        <button class="btn btn-sm btn-outline" onclick="document.getElementById('import-file').click()">⬆ Importar JSON</button>
+        <input type="file" id="import-file" accept=".json" style="display:none" onchange="importarDatos(event)" />
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PRESUPUESTO ===== -->
+  <div id="page-presupuesto" class="page">
+    <h2>Presupuesto mensual</h2>
+    <p style="color:var(--muted);font-size:.88rem;margin-bottom:20px;">Haz clic en cualquier importe para editarlo. Los cambios se guardan automáticamente.</p>
+
+    <div id="presupuesto-ingresos"></div>
+    <div id="presupuesto-gastos"></div>
+
+    <div style="display:flex;justify-content:flex-end;margin-top:16px;">
+      <button class="btn btn-outline" onclick="resetPresupuesto()">↺ Restaurar valores originales</button>
+    </div>
+  </div>
+
+  <!-- ===== GASTOS ===== -->
+  <div id="page-gastos" class="page">
+    <h2>Gastos del mes</h2>
+
+    <div id="gastos-fijos-section"></div>
+
+    <div class="add-form">
+      <h3>➕ Añadir gasto</h3>
+      <div class="form-row">
+        <input type="text" id="g-desc" placeholder="Descripción (ej: Mercadona)" />
+        <input type="number" id="g-amount" placeholder="Importe €" min="0" step="0.01" />
+        <select id="g-cat"></select>
+        <input type="date" id="g-date" />
+        <button class="btn" onclick="addGasto()">Añadir</button>
+      </div>
+    </div>
+
+    <div class="month-bar">
+      <span style="color:var(--muted);font-size:.88rem;">Filtrar:</span>
+      <select id="filter-month" onchange="renderGastos()">
+        <option value="all">Todos los meses</option>
+      </select>
+      <button class="btn btn-outline btn-sm" style="margin-left:auto;" onclick="registrarGastosMes()">⚡ Registrar gastos fijos del mes</button>
+      <span id="gastos-total-badge" class="badge badge-red" style="font-size:.85rem;"></span>
+    </div>
+
+    <div id="gastos-list"></div>
+
+    <div class="section" style="margin-bottom:20px;">
+      <div class="section-header" onclick="toggleSection('cat-manager-body')">
+        <span>🎨 Colores y límites de categorías</span>
+        <span class="toggle">abrir</span>
+      </div>
+      <div id="cat-manager-body" style="display:none;padding:12px 16px;">
+        <p style="color:var(--muted);font-size:.82rem;margin-bottom:14px;">
+          Las <strong>categorías</strong> clasifican tus gastos diarios (Comida, Ocio, etc.).
+          Podés cambiarles el <strong>color</strong> (se usa en el gráfico del Dashboard) y ponerles un
+          <strong>límite mensual</strong> (si ponés 0, no hay límite).
+        </p>
+        <div id="categorias-manager"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== INGRESOS LOG ===== -->
+  <div id="page-ingresos-log" class="page">
+    <h2>Ingresos</h2>
+
+    <div id="ingresos-fijos-section"></div>
+
+    <div class="add-form">
+      <h3>➕ Añadir ingreso</h3>
+      <div class="form-row">
+        <input type="text" id="il-desc" placeholder="Descripción (ej: Nómina junio)" />
+        <input type="number" id="il-amount" placeholder="Importe €" min="0" step="0.01" />
+        <select id="il-cat"></select>
+        <input type="date" id="il-date" />
+        <button class="btn" onclick="addIngresoLog()">Añadir</button>
+      </div>
+    </div>
+
+    <div class="month-bar">
+      <span style="color:var(--muted);font-size:.88rem;">Filtrar:</span>
+      <select id="il-filter-month" onchange="renderIngresosLog()">
+        <option value="all">Todos los meses</option>
+      </select>
+      <button class="btn btn-outline btn-sm" style="margin-left:auto;" onclick="registrarIngresosMes()">⚡ Registrar ingresos fijos del mes</button>
+      <span id="il-total-badge" class="badge badge-green" style="font-size:.85rem;"></span>
+    </div>
+
+    <div id="ingresos-log-list"></div>
+  </div>
+
+  <!-- ===== DEUDAS ===== -->
+  <div id="page-deudas" class="page">
+    <h2>Mis deudas y préstamos</h2>
+
+    <!-- PRÉSTAMOS -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <h3 style="margin-bottom:0;">🏦 Préstamos</h3>
+    </div>
+
+    <div class="add-form" style="margin-bottom:20px;">
+      <h3>➕ Añadir préstamo</h3>
+      <div class="form-row">
+        <input type="text" id="p-name" placeholder="Nombre (ej: Caixa)" />
+        <input type="number" id="p-total" placeholder="Total original €" min="0" step="0.01" />
+        <input type="number" id="p-paid" placeholder="Ya pagado €" min="0" step="0.01" value="0" />
+        <input type="number" id="p-cuota" placeholder="Cuota mensual €" min="0" step="0.01" />
+        <button class="btn" onclick="addPrestamo()">Añadir</button>
+      </div>
+    </div>
+    <div id="prestamos-list"></div>
+    <div id="prestamos-total" style="margin-top:4px;margin-bottom:28px;"></div>
+
+    <!-- DEUDAS PUNTUALES -->
+    <h3 style="margin-bottom:12px;">💳 Deudas puntuales</h3>
+    <div class="add-form">
+      <h3>➕ Añadir deuda</h3>
+      <div class="form-row">
+        <input type="text" id="d-name" placeholder="Nombre (ej: Endesa)" />
+        <input type="number" id="d-total" placeholder="Total €" min="0" step="0.01" />
+        <input type="number" id="d-paid" placeholder="Ya pagado €" min="0" step="0.01" value="0" />
+        <button class="btn" onclick="addDeuda()">Añadir</button>
+      </div>
+    </div>
+    <div id="deudas-list"></div>
+    <div id="deudas-total" style="margin-top:16px;"></div>
+  </div>
+
+</main>
+
+<div class="bottom-nav" id="bottom-nav">
+  <button data-page="dashboard" onclick="goTo('dashboard')" class="active">
+    <span class="bn-icon">📊</span>
+    <span class="bn-label">Inicio</span>
+  </button>
+  <button data-page="presupuesto" onclick="goTo('presupuesto')">
+    <span class="bn-icon">📋</span>
+    <span class="bn-label">Presupuesto</span>
+  </button>
+  <button data-page="gastos" onclick="goTo('gastos')">
+    <span class="bn-icon">🧾</span>
+    <span class="bn-label">Gastos</span>
+  </button>
+  <button data-page="ingresos-log" onclick="goTo('ingresos-log')">
+    <span class="bn-icon">💵</span>
+    <span class="bn-label">Ingresos</span>
+  </button>
+  <button data-page="deudas" onclick="goTo('deudas')">
+    <span class="bn-icon">💳</span>
+    <span class="bn-label">Deudas</span>
+  </button>
+  <button onclick="authLogout()" style="flex:0.6;color:var(--muted);">
+    <span class="bn-icon">🚪</span>
+    <span class="bn-label">Salir</span>
+  </button>
+</div>
+
+<script src="js/app.js"></script>
+
+</div><!-- /app-content -->
+
+</body>
+</html>

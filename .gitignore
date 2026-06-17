@@ -1,0 +1,14 @@
+# OS
+Thumbs.db
+.DS_Store
+
+# Editor
+*.swp
+*.swo
+
+# Firebase (local config — no subir)
+firebase-debug.log
+.firebase/
+
+# Cache
+*.cache
