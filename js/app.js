@@ -1,80 +1,11 @@
 // ============================================================
-//  DATA — cargada de tu CONTABILIDAD.xlsx
+//  DEFAULTS — valores iniciales para usuarios nuevos
+//  (Los datos existentes de cada usuario se cargan de localStorage + Firestore)
 // ============================================================
-const DEFAULT_INGRESOS_GRUPOS = [
-  {
-    id: 'ig1', name: '💼 Salarios',
-    items: [
-      { id: 'i1', name: 'Sueldo Antonio', amount: 600 },
-      { id: 'i2', name: 'Extras trabajo', amount: 0 },
-    ]
-  },
-  {
-    id: 'ig2', name: '🏠 Aportaciones hogar',
-    items: [
-      { id: 'i3', name: 'Aportación Belén', amount: 270 },
-      { id: 'i4', name: 'Aportación Lizeth', amount: 651 },
-      { id: 'i6', name: 'Karen y Andrea', amount: 10.5 },
-      { id: 'i7', name: 'Nayger', amount: 5 },
-    ]
-  },
-  {
-    id: 'ig3', name: '🎓 Becas / Ayudas',
-    items: [
-      { id: 'i5', name: 'Beca', amount: 800 },
-    ]
-  },
-];
-
-const DEFAULT_GASTOS_GRUPOS = [
-  {
-    id: 'g_servicios', name: '🏠 Servicios del hogar',
-    items: [
-      { id: 'g1', name: 'Alquiler casa', amount: 725 },
-      { id: 'g2', name: 'Luz (Endesa)', amount: 80 },
-      { id: 'g3', name: 'Agua', amount: 35 },
-      { id: 'g4', name: 'Gas (Endesa)', amount: 30 },
-    ]
-  },
-  {
-    id: 'g_yoigo', name: '📱 YOIGO / Internet',
-    items: [
-      { id: 'g5', name: 'Datos + móvil Lizeth', amount: 51 },
-      { id: 'g6', name: 'Internet + Netflix', amount: 62 },
-      { id: 'g7', name: 'Línea Belén', amount: 6 },
-      { id: 'g8', name: 'iPhone Antonio', amount: 19 },
-      { id: 'g9', name: 'Línea Papá', amount: 9 },
-    ]
-  },
-  {
-    id: 'g_personales', name: '👤 Gastos personales fijos',
-    items: [
-      { id: 'g10', name: 'Grado Superior', amount: 126 },
-      { id: 'g11', name: 'Coche', amount: 390 },
-      { id: 'g12', name: 'Deudafix', amount: 125 },
-      { id: 'g13', name: 'Ayuda padres', amount: 150 },
-      { id: 'g14', name: 'Cuota WiZink', amount: 97 },
-      { id: 'g15', name: 'Curso de Inglés', amount: 250 },
-      { id: 'g16', name: 'Comida en casa', amount: 150 },
-      { id: 'g17', name: 'San (ahorro grupal)', amount: 100 },
-      { id: 'g18', name: 'YouTube Premium', amount: 33 },
-      { id: 'g19', name: 'Curso David', amount: 85 },
-      { id: 'g20', name: 'Préstamo Caixa', amount: 159 },
-    ]
-  },
-];
-
-const DEFAULT_DEUDAS = [
-  { id: 'd1', name: 'Endesa – Luz', total: 66.78, paid: 0 },
-  { id: 'd2', name: 'Endesa – Gas', total: 87.11, paid: 0 },
-  { id: 'd3', name: 'Endesa – Seguro', total: 52.91, paid: 0 },
-];
-
-const DEFAULT_PRESTAMOS = [
-  { id: 'p1', name: 'Deudafix',       total: 0, paid: 0, cuota: 125, gastoId: 'g12' },
-  { id: 'p2', name: 'WiZink',         total: 0, paid: 0, cuota: 97,  gastoId: 'g14' },
-  { id: 'p3', name: 'Préstamo Caixa', total: 0, paid: 0, cuota: 159, gastoId: 'g20' },
-];
+const DEFAULT_INGRESOS_GRUPOS = [];
+const DEFAULT_GASTOS_GRUPOS = [];
+const DEFAULT_DEUDAS = [];
+const DEFAULT_PRESTAMOS = [];
 
 // ============================================================
 //  CATEGORÍAS INDEPENDIENTES (con colores y límites)
