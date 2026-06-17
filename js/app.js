@@ -916,7 +916,7 @@ function showApp(user) {
   document.getElementById('app-content').style.display = '';
   document.getElementById('nav-user-email').textContent = user.email;
 
-  // Inicializar UI
+  // Inicializar UI — siempre arrancar en Dashboard
   document.getElementById('g-date').value  = today();
   document.getElementById('il-date').value = today();
   populateCatSelect('g-cat',  categorias);
@@ -930,7 +930,7 @@ function showApp(user) {
 
   populateMonths();
   populateMonthsIngresos();
-  renderDashboard();
+  goTo('dashboard'); // Forzar navegación a Dashboard (resetea la página activa)
 }
 
 function showAuth() {
