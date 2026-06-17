@@ -123,6 +123,15 @@ function authSubmit() {
 }
 
 function authLogout() {
+  clearTimeout(_saveTimer); // Cancelar saves pendientes para no contaminar otro usuario
+  // Limpiar datos en memoria
+  categorias    = JSON.parse(JSON.stringify(DEFAULT_CATEGORIAS));
+  ingresosGrupos = [];
+  ingresosLog   = [];
+  gastosGrupos  = [];
+  gastosLog     = [];
+  deudas        = [];
+  prestamos     = [];
   firebase.auth().signOut().catch(e => console.warn('Error al cerrar sesión:', e));
 }
 
@@ -837,10 +846,22 @@ async function resetPresupuesto() {
 // ============================================================
 //  LOAD — carga datos para el usuario autenticado
 // ============================================================
+function refreshUI() {
+  const currentPage = document.querySelector('.page.active');
+  if (currentPage) {
+    const pageId = currentPage.id.replace('page-', '');
+    if (pageId === 'dashboard') renderDashboard();
+    else if (pageId === 'presupuesto') renderPresupuesto();
+    else if (pageId === 'gastos') { renderGastosFijos(); renderGastos(); }
+    else if (pageId === 'ingresos-log') { renderIngresosFijos(); renderIngresosLog(); }
+    else if (pageId === 'deudas') { renderDeudas(); renderPrestamos(); }
+  }
+}
+
 function loadAllData(user) {
   currentUser = user;
 
-  // Recargar desde localStorage (ahora con el uid correcto)
+  // Recargar desde localStorage (con el uid correcto)
   categorias    = load('categorias', DEFAULT_CATEGORIAS);
   ingresosGrupos = load('ingresos_grupos', DEFAULT_INGRESOS_GRUPOS);
   ingresosLog   = load('ing_log', []);
@@ -848,6 +869,9 @@ function loadAllData(user) {
   gastosLog     = load('log', []);
   deudas        = load('deudas', DEFAULT_DEUDAS);
   prestamos     = load('prestamos', DEFAULT_PRESTAMOS);
+
+  // Mostrar app inmediatamente con datos locales
+  showApp(user);
 
   // Sincronizar desde Firestore (nube) con timeout de 5s
   const docRef = userDocRef();
@@ -875,15 +899,15 @@ function loadAllData(user) {
           save('ing_log', ingresosLog);
           save('deudas', deudas);
           save('prestamos', prestamos);
+
+          // Refrescar UI con datos de la nube
+          refreshUI();
         }
       } catch(e) {
         console.warn('Sin conexión, usando datos locales:', e);
       }
     })();
   }
-
-  // Mostrar app, ocultar loading y auth
-  showApp(user);
 }
 
 function showApp(user) {
