@@ -21,6 +21,47 @@ const DEFAULT_CATEGORIAS = [
 ];
 
 // ============================================================
+//  THEME TOGGLE — light / dark
+// ============================================================
+function toggleTheme() {
+  const html = document.documentElement;
+  const isLight = html.getAttribute('data-theme') === 'light';
+  if (isLight) {
+    html.removeAttribute('data-theme');
+    localStorage.setItem('mf-theme', 'dark');
+    document.querySelectorAll('#theme-toggle, #theme-toggle-mobile .bn-icon').forEach(el => el.textContent = '☀️');
+  } else {
+    html.setAttribute('data-theme', 'light');
+    localStorage.setItem('mf-theme', 'light');
+    document.querySelectorAll('#theme-toggle, #theme-toggle-mobile .bn-icon').forEach(el => el.textContent = '🌙');
+  }
+}
+
+function initTheme() {
+  const saved = localStorage.getItem('mf-theme');
+  const updateBtns = (icon) => {
+    document.querySelectorAll('#theme-toggle, #theme-toggle-mobile .bn-icon').forEach(el => el.textContent = icon);
+  };
+  if (saved === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+    updateBtns('🌙');
+  } else if (saved === 'dark') {
+    document.documentElement.removeAttribute('data-theme');
+    updateBtns('☀️');
+  } else {
+    // Sin preferencia guardada → usar sistema
+    if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+      document.documentElement.setAttribute('data-theme', 'light');
+      updateBtns('🌙');
+    } else {
+      updateBtns('☀️');
+    }
+  }
+}
+// Inicializar tema ni bien se carga el DOM
+document.addEventListener('DOMContentLoaded', initTheme);
+
+// ============================================================
 //  FIREBASE
 // ============================================================
 let db;

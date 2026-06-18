@@ -57,6 +57,7 @@
   <span style="flex:1;"></span>
   <span id="nav-user-email" style="font-size:.78rem;color:var(--muted);padding:0 8px;"></span>
   <button onclick="authLogout()" style="color:var(--muted);font-size:.82rem;" title="Cerrar sesión">🚪 Salir</button>
+  <button id="theme-toggle" onclick="toggleTheme()" title="Cambiar tema" style="font-size:1.1rem;padding:18px 12px;">☀️</button>
 </nav>
 
 <main>
@@ -252,6 +253,9 @@
   <button data-page="deudas" onclick="goTo('deudas')">
     <span class="bn-icon">💳</span>
     <span class="bn-label">Deudas</span>
+  </button>
+  <button id="theme-toggle-mobile" onclick="toggleTheme()" style="flex:0.4;color:var(--muted);font-size:1.3rem;padding:6px 4px;" title="Cambiar tema">
+    <span class="bn-icon">☀️</span>
   </button>
   <button onclick="authLogout()" style="flex:0.6;color:var(--muted);">
     <span class="bn-icon">🚪</span>
