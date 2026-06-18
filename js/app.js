@@ -194,6 +194,8 @@ function migrateAnonymousData(user) {
 //  SAVE — localStorage + Firestore
 // ============================================================
 let _saveTimer = null;
+let _gastosMaxItems = 100;       // paginación en renderGastos
+let _ingresosMaxItems = 100;     // paginación en renderIngresosLog
 function scheduleSave() {
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(() => {
@@ -295,7 +297,7 @@ function showToast(msg, type) {
 }
 
 // Confirm dialog modal (no bloqueante)
-function confirmCustom(msg) {
+function confirmCustom(msg, btnText = 'Sí') {
   return new Promise(resolve => {
     const overlay = document.createElement('div');
     const box = document.createElement('div');
@@ -314,7 +316,7 @@ function confirmCustom(msg) {
     box.innerHTML = `
       <p style="margin-bottom:20px;font-size:.95rem;color:var(--text);line-height:1.5;">${msg}</p>
       <div style="display:flex;gap:12px;justify-content:center;">
-        <button id="mf-confirm-yes" class="btn">Sí, restaurar</button>
+        <button id="mf-confirm-yes" class="btn">${btnText}</button>
         <button id="mf-confirm-no" class="btn btn-outline">Cancelar</button>
       </div>`;
     overlay.appendChild(box);
@@ -361,7 +363,7 @@ function renderDashboard() {
   const ing = totalIngresos();
   const gas = totalGastosFijos();
   const bal = ing - gas;
-  const pct = Math.round((gas / ing) * 100);
+  const pct = ing > 0 ? Math.round((gas / ing) * 100) : 0;
 
   // alert
   const alertEl = document.getElementById('alert-balance');
@@ -831,7 +833,7 @@ function updateGasto(gid, id, val) {
 }
 
 async function resetPresupuesto() {
-  const ok = await confirmCustom('¿Restaurar todos los valores al original del archivo?');
+  const ok = await confirmCustom('¿Borrar todos los datos del presupuesto? Esta acción no se puede deshacer. Perderás todos tus grupos de ingresos y gastos fijos.', 'Sí, borrar todo');
   if (!ok) return;
   ingresosGrupos = JSON.parse(JSON.stringify(DEFAULT_INGRESOS_GRUPOS));
   gastosGrupos   = JSON.parse(JSON.stringify(DEFAULT_GASTOS_GRUPOS));
@@ -891,14 +893,14 @@ function loadAllData(user) {
           if (d.deudas)       deudas       = d.deudas;
           if (d.prestamos)    prestamos    = d.prestamos;
 
-          // Persistir datos de la nube a localStorage
-          save('categorias', categorias);
-          save('ingresos_grupos', ingresosGrupos);
-          save('gastos', gastosGrupos);
-          save('log', gastosLog);
-          save('ing_log', ingresosLog);
-          save('deudas', deudas);
-          save('prestamos', prestamos);
+          // Persistir datos de la nube a localStorage (sin cloud save — ya vienen de la nube)
+          localStorage.setItem(storageKey('categorias'), JSON.stringify(categorias));
+          localStorage.setItem(storageKey('ingresos_grupos'), JSON.stringify(ingresosGrupos));
+          localStorage.setItem(storageKey('gastos'), JSON.stringify(gastosGrupos));
+          localStorage.setItem(storageKey('log'), JSON.stringify(gastosLog));
+          localStorage.setItem(storageKey('ing_log'), JSON.stringify(ingresosLog));
+          localStorage.setItem(storageKey('deudas'), JSON.stringify(deudas));
+          localStorage.setItem(storageKey('prestamos'), JSON.stringify(prestamos));
 
           // Refrescar UI con datos de la nube
           refreshUI();
@@ -925,8 +927,13 @@ function showApp(user) {
   // Migrar gastosLog a categorías existentes
   const validCatNames = new Set(categorias.map(c => c.name));
   gastosLog.forEach(g => { if (!validCatNames.has(g.cat)) g.cat = categorias[0]?.name || 'Otros'; });
+
+  // Asegurar al menos un grupo de ingresos para categorización
+  if (ingresosGrupos.length === 0) {
+    ingresosGrupos.push({ id: 'ig_default', name: 'Otros ingresos', items: [] });
+  }
   const validICats = new Set(ingresosGrupos.map(g => g.name));
-  ingresosLog.forEach(g => { if (!validICats.has(g.cat)) g.cat = ingresosGrupos[0]?.name || ''; });
+  ingresosLog.forEach(g => { if (!validICats.has(g.cat)) g.cat = ingresosGrupos[0]?.name || 'Otros'; });
 
   populateMonths();
   populateMonthsIngresos();
@@ -1003,6 +1010,7 @@ function registrarGastosMes() {
     });
   });
 
+  _gastosMaxItems = 100;
   save('log', gastosLog);
   populateMonths();
 
@@ -1018,6 +1026,7 @@ function addGasto() {
   const date = document.getElementById('g-date').value;
   if (!desc || !amount || amount <= 0) { showToast('Rellena la descripción y el importe.', 'yellow'); return; }
   gastosLog.unshift({ id: 'gl' + Date.now(), desc, amount, cat, date: date || today() });
+  _gastosMaxItems = 100;
   save('log', gastosLog);
   document.getElementById('g-desc').value = '';
   document.getElementById('g-amount').value = '';
@@ -1032,6 +1041,7 @@ function changeGastoCat(id, newCat) {
 
 function deleteGasto(id) {
   gastosLog = gastosLog.filter(g => g.id !== id);
+  _gastosMaxItems = 100;
   save('log', gastosLog);
   populateMonths();
   renderGastos();
@@ -1056,14 +1066,20 @@ function renderGastos() {
 
   if (!items.length) {
     document.getElementById('gastos-list').innerHTML = '<div class="expense-list"><div class="empty-state">No hay gastos registrados aún.<br>Añade el primero arriba 👆</div></div>';
+    _gastosMaxItems = 100;
     return;
   }
+
+  // Paginación: solo renderizar _gastosMaxItems como máximo
+  const hasMore = items.length > _gastosMaxItems;
+  const visibleItems = hasMore ? items.slice(0, _gastosMaxItems) : items;
+  const hiddenCount = hasMore ? items.length - _gastosMaxItems : 0;
 
   // Agrupar por categoría independiente
   const catOrder = categorias.map(c => c.name);
   const grupos = {};
   catOrder.forEach(c => grupos[c] = []);
-  items.forEach(g => { const c = grupos[g.cat] !== undefined ? g.cat : catOrder[0]; grupos[c] = grupos[c] || []; grupos[c].push(g); });
+  visibleItems.forEach(g => { const c = grupos[g.cat] !== undefined ? g.cat : catOrder[0]; grupos[c] = grupos[c] || []; grupos[c].push(g); });
 
   let html = '';
   catOrder.forEach(cat => {
@@ -1098,6 +1114,14 @@ function renderGastos() {
     });
     html += `</div></div>`;
   });
+
+  // Botón "Cargar más"
+  if (hasMore) {
+    html += `<div style="text-align:center;padding:16px;">
+      <button class="btn btn-sm" onclick="_gastosMaxItems += 100; renderGastos()">📦 Cargar más (${hiddenCount} restantes)</button>
+      <button class="btn btn-sm btn-outline" onclick="_gastosMaxItems = Infinity; renderGastos()">Mostrar todos</button>
+    </div>`;
+  }
 
   document.getElementById('gastos-list').innerHTML = html;
   renderCategoriasManager();
@@ -1145,6 +1169,9 @@ function renderCategoriasManager() {
 function addCategoria() {
   const name = document.getElementById('new-cat-name').value.trim();
   if (!name) { showToast('Escribe un nombre para la categoría', 'yellow'); return; }
+  if (categorias.some(c => c.name.toLowerCase() === name.toLowerCase())) {
+    showToast('Ya existe una categoría con ese nombre', 'yellow'); return;
+  }
   const color = document.getElementById('new-cat-color').value;
   const limit = parseFloat(document.getElementById('new-cat-limit').value) || 0;
   categorias.push({ id: 'c' + Date.now(), name, color, limit });
@@ -1159,9 +1186,13 @@ function addCategoria() {
 function deleteCategoria(id) {
   const c = categorias.find(c => c.id === id);
   if (!c) return;
+  if (categorias.length <= 1) {
+    showToast('No podés eliminar la única categoría. Creá otra primero.', 'yellow');
+    return;
+  }
   // Reasignar gastos de esta categoría a la primera disponible
   const firstCat = categorias.find(x => x.id !== id);
-  gastosLog.forEach(g => { if (g.cat === c.name && firstCat) g.cat = firstCat.name; });
+  gastosLog.forEach(g => { if (g.cat === c.name) g.cat = firstCat.name; });
   categorias = categorias.filter(x => x.id !== id);
   saveCategorias();
   save('log', gastosLog);
@@ -1246,6 +1277,7 @@ function registrarIngresosMes() {
     });
   });
 
+  _ingresosMaxItems = 100;
   save('ing_log', ingresosLog);
   populateMonthsIngresos();
 
@@ -1263,6 +1295,7 @@ function addIngresoLog() {
   if (!desc || !amount || amount <= 0) { document.getElementById('il-desc').style.borderColor='var(--red)'; return; }
   document.getElementById('il-desc').style.borderColor = '';
   ingresosLog.unshift({ id: 'il' + Date.now(), desc, amount, cat, date: date || today() });
+  _ingresosMaxItems = 100;
   save('ing_log', ingresosLog);
   document.getElementById('il-desc').value = '';
   document.getElementById('il-amount').value = '';
@@ -1277,6 +1310,7 @@ function changeIngresoCat(id, newCat) {
 
 function deleteIngresoLog(id) {
   ingresosLog = ingresosLog.filter(g => g.id !== id);
+  _ingresosMaxItems = 100;
   save('ing_log', ingresosLog);
   populateMonthsIngresos();
   renderIngresosLog();
@@ -1293,14 +1327,24 @@ function renderIngresosLog() {
 
   if (!items.length) {
     document.getElementById('ingresos-log-list').innerHTML = '<div class="expense-list"><div class="empty-state">No hay ingresos registrados aún.<br>Añade el primero arriba 👆</div></div>';
+    _ingresosMaxItems = 100;
     return;
   }
 
+  // Paginación: solo renderizar _ingresosMaxItems como máximo
+  const hasMore = items.length > _ingresosMaxItems;
+  const visibleItems = hasMore ? items.slice(0, _ingresosMaxItems) : items;
+  const hiddenCount = hasMore ? items.length - _ingresosMaxItems : 0;
+
   // Agrupar por categoría — mismo sistema que ingresos fijos
-  const catOrder = ingresosGrupos.map(g => g.name);
+  let catOrder = ingresosGrupos.map(g => g.name);
+  // Fallback: si no hay grupos definidos, usar las categorías existentes en los items
+  if (catOrder.length === 0 && items.length > 0) {
+    catOrder = [...new Set(items.map(g => g.cat).filter(Boolean))];
+  }
   const grupos = {};
   catOrder.forEach(c => grupos[c] = []);
-  items.forEach(g => { const c = grupos[g.cat] !== undefined ? g.cat : catOrder[0]; grupos[c] = grupos[c] || []; grupos[c].push(g); });
+  visibleItems.forEach(g => { const c = grupos[g.cat] !== undefined ? g.cat : catOrder[0]; grupos[c] = grupos[c] || []; grupos[c].push(g); });
 
   let html = '';
   catOrder.forEach(cat => {
@@ -1334,6 +1378,14 @@ function renderIngresosLog() {
     });
     html += `</div></div>`;
   });
+
+  // Botón "Cargar más"
+  if (hasMore) {
+    html += `<div style="text-align:center;padding:16px;">
+      <button class="btn btn-sm" onclick="_ingresosMaxItems += 100; renderIngresosLog()">📦 Cargar más (${hiddenCount} restantes)</button>
+      <button class="btn btn-sm btn-outline" onclick="_ingresosMaxItems = Infinity; renderIngresosLog()">Mostrar todos</button>
+    </div>`;
+  }
 
   document.getElementById('ingresos-log-list').innerHTML = html;
 }
@@ -1578,7 +1630,7 @@ function importarDatos(event) {
         showToast('El archivo no tiene el formato correcto', 'red');
         return;
       }
-      const ok = await confirmCustom('¿Sobrescribir todos los datos actuales con el backup? Esta acción no se puede deshacer.');
+      const ok = await confirmCustom('¿Sobrescribir todos los datos actuales con el backup? Esta acción no se puede deshacer.', 'Sí, sobrescribir');
       if (!ok) return;
       categorias     = data.categorias || DEFAULT_CATEGORIAS;
       ingresosGrupos = data.ingresosGrupos;
