@@ -492,7 +492,7 @@ function renderPresupuesto() {
   let html = '';
   ingresosGrupos.forEach(g => {
     const gTotal = g.items.reduce((s, i) => s + (i.amount || 0), 0);
-    html += `<div class="section" style="margin-bottom:12px;">
+    html += `<div class="section">
       <div class="section-header" onclick="toggleSection('pres-ing-${g.id}')">
         <span>${g.name}</span><span class="toggle green">${fmt(gTotal)}</span>
       </div>
@@ -514,14 +514,14 @@ function renderPresupuesto() {
       <div class="total-row"><span>Subtotal</span><span class="green">${fmt(gTotal)}</span></div>
     </div>`;
   });
-  html += `<div class="total-row" style="font-weight:600;"><span>Total ingresos</span><span class="green">${fmt(totalIngresos())}</span></div>`;
+  html += `<div class="total-row" style="font-weight:600;margin-bottom:24px;"><span>Total ingresos</span><span class="green">${fmt(totalIngresos())}</span></div>`;
   document.getElementById('presupuesto-ingresos').innerHTML = html;
 
   // Gastos fijos
   let ghtml = '';
   gastosGrupos.forEach(g => {
     const gTotal = g.items.reduce((s, it) => s + (it.amount||0), 0);
-    ghtml += `<div class="section" style="margin-bottom:12px;">
+    ghtml += `<div class="section">
       <div class="section-header" onclick="toggleSection('body-${g.id}')">
         <span>${g.name}</span>
         <span class="toggle red">${fmt(gTotal)}</span>
@@ -547,7 +547,7 @@ function renderPresupuesto() {
   });
 
   const bal = balance();
-  ghtml += `<div class="card" style="margin-top:16px;border-color:${bal>=0?'var(--green)':'var(--red)'}">
+  ghtml += `<div class="card" style="margin-top:24px;border-color:${bal>=0?'var(--green)':'var(--red)'}">
     <div style="display:flex;justify-content:space-between;align-items:center;">
       <span style="font-size:1rem;font-weight:600;">BALANCE MENSUAL</span>
       <span style="font-size:1.5rem;font-weight:700;" class="${bal>=0?'green':'red'}">${fmt(bal)}</span>
@@ -563,7 +563,7 @@ function renderGastosFijos() {
   let html = `<h3 style="margin-bottom:12px;">📌 Gastos fijos del presupuesto</h3>`;
 
   // Gestión de categorías (grupos)
-  html += `<div class="section" style="margin-bottom:16px;">
+  html += `<div class="section">
     <div class="section-header" onclick="toggleSection('gf-cat-manager')">
       <span>⚙️ Editar los grupos del presupuesto</span>
       <span class="toggle">abrir</span>
@@ -586,7 +586,7 @@ function renderGastosFijos() {
   // Grupos con sus items
   gastosGrupos.forEach(g => {
     const gTotal = g.items.reduce((s, it) => s + (it.amount||0), 0);
-    html += `<div class="section" style="margin-bottom:12px;">
+    html += `<div class="section">
       <div class="section-header" onclick="toggleSection('gf-body-${g.id}')">
         <span>${g.name}</span><span class="toggle red">${fmt(gTotal)}</span>
       </div>
@@ -615,7 +615,7 @@ function renderGastosFijos() {
 
   html += `<div class="total-row" style="font-weight:700;border-top:2px solid var(--border);padding-top:10px;margin-bottom:24px;">
     <span>Total gastos fijos</span><span class="red">${fmt(totalGastosFijos())}</span>
-  </div><hr style="border:none;border-top:1px solid var(--border);margin-bottom:20px;">`;
+  </div><hr style="border:none;border-top:1px solid var(--border);margin:24px 0;">`;
   el.innerHTML = html;
 }
 
@@ -667,7 +667,7 @@ function renderIngresosFijos() {
   let html = `<h3 style="margin-bottom:12px;">📌 Ingresos fijos del presupuesto</h3>`;
 
   // Gestión de categorías (grupos)
-  html += `<div class="section" style="margin-bottom:16px;">
+  html += `<div class="section">
     <div class="section-header" onclick="toggleSection('if-cat-manager')">
       <span>⚙️ Gestionar categorías de ingresos fijos</span>
       <span class="toggle">abrir</span>
@@ -691,7 +691,7 @@ function renderIngresosFijos() {
   const grupoOpts = ingresosGrupos.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
   ingresosGrupos.forEach(g => {
     const gTotal = g.items.reduce((s, i) => s + (i.amount || 0), 0);
-    html += `<div class="section" style="margin-bottom:12px;">
+    html += `<div class="section">
       <div class="section-header" onclick="toggleSection('if-body-${g.id}')">
         <span>${g.name}</span><span class="toggle green">${fmt(gTotal)}</span>
       </div>
@@ -720,7 +720,7 @@ function renderIngresosFijos() {
 
   html += `<div class="total-row" style="font-weight:700;border-top:2px solid var(--border);padding-top:10px;margin-bottom:24px;">
     <span>Total ingresos fijos</span><span class="green">${fmt(totalIngresos())}</span>
-  </div><hr style="border:none;border-top:1px solid var(--border);margin-bottom:20px;">`;
+  </div><hr style="border:none;border-top:1px solid var(--border);margin:24px 0;">`;
   el.innerHTML = html;
 }
 
